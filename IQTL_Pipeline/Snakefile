@@ -1,1 +1,266 @@
-dd
+##===============
+## snakemake file for IQTL pipeline
+##===============
+
+import glob
+import os
+
+## path of snakefile - check and rectify
+SCRIPTDIR = os.path.dirname(workflow.snakefile)
+
+configfile: SCRIPTDIR + "/configfile_IQTL.yaml"
+
+## Defining function to read .txt with samples and bams!
+RefGenome = config['General']['RefGenome']
+AutoChr = int(config['General']['AutosomalChr'])
+
+## Read Donors - 1st column of the sample file (unique entries)
+def read_donors(samplefile):
+	f=open(samplefile, 'r')
+	donorlist = []
+	x=0
+	for line in f:
+		## skip the first line - header
+		x=x+1
+		if x>1:
+			word=line.strip().split()
+			donorlist.append(word[0])
+	print('donorlist: ', donorlist)
+	print('length donorlist: ', len(donorlist))
+	return list(set(donorlist))
+
+
+## chromosomes
+if RefGenome == "hg19" or RefGenome == "hg38":
+	if AutoChr == 1:
+		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 23)))
+	else:
+		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 23))) + list('chrX') + list('chrY')
+elif RefGenome == "mm9" or RefGenome == "mm10" or RefGenome == "mm39":
+	if AutoChr == 1:
+		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 20)))
+	else:
+		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 20))) + list('chrX') + list('chrY')
+
+## number of chunks
+LIS_CHUNKS = list( range(1, int(config['IQTL']['nchunk']) +1) )
+
+## DONORS
+LIS_DONORS = list(read_donors(config['General']['SampleFile']))
+print('LIS_DONORS: ', LIS_DONORS)
+
+## output directory
+WDIR = config['General']['IQTLResDir']
+workdir: WDIR
+
+
+rule all:
+	input:
+		# WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz'
+		# WDIR + '/Sample.txt'
+		expand(WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted.bam', donor=LIS_DONORS, chrom=LIS_CHROM)
+
+
+rule merge_HiChIP_ValidPairs:
+	""" 
+	Merge HiChIP valid pairs (HiCPro) based on the CIS valid pairs reads
+	For individual donors and the constituent samples (there can be multiple samples for the same donor, possibly for different sequencing runs)
+	"""
+	output:
+		WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz'
+	shell:				
+		"Rscript {SCRIPTDIR}/Code/HiChIP_Alignment/merge_HiChIP_ValidPairs.R \
+			{config[General][SampleFile]} \
+			{config[HiChIP][HiChIPDataDir]} \
+			{config[General][IQTLResDir]} \
+			{config[HiChIP][LowDistThr]} \
+			{config[HiChIP][HighDistThr]} \
+			{config[General][AutosomalChr]} \
+			{wildcards.donor}"
+
+
+rule calc_seq_depth:
+	""" 
+	calculate the sequencing depth for individual HiChIP merged sample (one per donor)
+	and create a sample file (one entry per donor)
+	""" 
+	input:
+		expand(WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz', donor=LIS_DONORS)
+	output:
+		WDIR + '/Sample.txt'
+	shell:
+		"Rscript {SCRIPTDIR}/Code/HiChIP_Alignment/Estimate_SeqDepth.R \
+			{config[General][SampleFile]} \
+			{WDIR}/Sample.txt \
+			{WDIR}/HiChIP_CIS_Reads"
+		
+
+rule merge_HiChIP_Alignments:
+	""" 
+	Merge HiChIP alignments (HiCPro) for individual donors, merging all bam files from the constituent samples
+	(there can be multiple samples for the same donor, possibly for different sequencing runs)
+	"""
+	output:
+		WDIR + '/HiChIP_Complete_Alignments/{donor}/chrwise/merged_HiChIP_{chrom}_sorted.bam'
+	shell:				
+		"Rscript {SCRIPTDIR}/Code/HiChIP_Alignment/merge_HiChIP_Alignments.R \
+			{config[General][SampleFile]} \
+			{config[HiChIP][HiChIPDataDir]} \
+			{config[General][IQTLResDir]} \
+			{config[General][RefGenome]} \
+			{wildcards.donor} \
+			{wildcards.chrom}"
+
+
+rule subsample_HiChIP:
+	""" 
+	Subsample HiChIP alignments (bam files generated from HiCPro) based on the CIS valid pairs reads
+	Also extracts bam files per chromsome, and sort by both chr-pos, and also by the read names
+	"""
+	input:
+		expand(WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz', donor=LIS_DONORS),
+		expand(WDIR + '/HiChIP_Complete_Alignments/{donor}/chrwise/merged_HiChIP_{chrom}_sorted.bam', donor=LIS_DONORS, chrom=LIS_CHROM)
+	output:
+		WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted.bam'
+	shell:				
+		"Rscript {SCRIPTDIR}/Code/HiChIP_Alignment/merge_subsample_HiChIP_align.R \
+			{config[General][SampleFile]} \
+			{config[HiChIP][HiChIPDataDir]} \
+			{config[General][IQTLResDir]} \
+			{config[General][AutosomalChr]} \
+			{wildcards.donor} \
+			{wildcards.chrom}"
+		
+
+# rule Call_FitHiChIP:
+# 	""" 
+# 	Call FitHiChIP using the merged HiChIP CIS valid pairs
+# 	and the ChIP-seq peak files
+# 	mention the output directory for individual donors
+# 	"""
+# 	input:
+# 		expand(WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz', donor=LIS_DONORS)
+# 	output:
+# 		WDIR + '/FitHiCHIP_Loops/{donor}/configfile_FitHiChIP'
+# 	params:
+# 		donor = lambda wildcards: LIS_DONORS[wildcards.donor]	
+# 	shell:
+# 		## create FitHiChIP configuration file
+# 		"cp {SCRIPTDIR}/configfile_FitHiChIP {WDIR}/FitHiCHIP_Loops/{params.donor}/";
+# 		"sed -i 's/ValidPairs=/ValidPairs={WDIR}/HiChIP_CIS_Reads/{params.donor}/Merged_CIS_Validpairs.txt.gz'";
+# 		"sed -i 's/PeakFile=/PeakFile={config[HiChIP][PeakFile]}";
+# 		"sed -i 's/OutDir=/OutDir={WDIR}/FitHiCHIP_Loops/{params.donor}/{config[HiChIP][FitHiChIPPrefix]}";
+# 		"sed -i 's/BINSIZE=/BINSIZE={config[HiChIP][binsize]}";
+# 		"sed -i 's/LowDistThr=/LowDistThr={config[HiChIP][LowDistThr]}";
+# 		"sed -i 's/UppDistThr=/UppDistThr={config[HiChIP][HighDistThr]}";
+# 		"sed -i 's/UseP2PBackgrnd=/UseP2PBackgrnd={config[HiChIP][P2P]}";
+# 		"sed -i 's/QVALUE=/QVALUE={config[HiChIP][FDRThr]}";
+# 		"sed -i 's/ChrSizeFile=/ChrSizeFile={config[General][ChrSize]}";
+# 		## execute FitHiChIP
+# 		"{config[HiChIP][FitHiChIPExec]} -C {WDIR}/FitHiCHIP_Loops/{params.donor}/configfile_FitHiChIP"
+
+# rule MasterSheet:
+# 	""" 
+# 	Creates mastersheet of FitHiChIP loops for all IQTL donors	
+# 	"""
+# 	input:
+# 		expand(WDIR + '/FitHiCHIP_Loops/{donor}/configfile_FitHiChIP', donor=LIS_DONORS)		
+# 	output:
+# 		WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'
+# 	shell:				
+# 		"Rscript {SCRIPTDIR}/Code/MasterSheet/Create_MasterSheet.R \
+# 			--P2P {config[HiChIP][P2P]} \
+# 			--FitHiChIPBaseDir {config[HiChIP][FitHiChIPBaseDir]} \
+# 			--MasterSheetDir {config[General][IQTLResDir]}/MasterSheet_Loops \
+# 			--DonorFile {config[General][SampleFile]} \
+# 			--BinSize {config[HiChIP][binsize]} \
+# 			--FitHiChIPDirPrefix {config[HiChIP][FitHiChIPPrefix]} \
+# 			--DistLow {config[HiChIP][LowDistThr]} \
+# 			--DistHigh {config[HiChIP][HighDistThr]} \
+# 			--Auto {config[General][AutosomalChr]} \
+# 			--RefGenome {config[General][RefGenome]} \
+# 			--FDRThr {config[HiChIP][FDRThr]}"
+
+
+
+
+# ##==============
+# ## insert a segment regarding the genotype estimation
+# ##==============
+
+
+# rule RASQUAL_Covariate:
+# 	""" 
+# 	Creates RASQUAL compatible input files and covariates
+# 	"""
+# 	input:
+# 		mastersheetfile = WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'
+# 	output:
+# 		WDIR + '/RASQUAL_INPUTS/Y.txt'
+# 	shell:				
+# 		"Rscript {SCRIPTDIR}/Code/RASQUAL/calc_offset_covariates.R \
+# 			{config[General][IQTLResDir]} \
+# 			{config[General][RASQUALBaseDir]} \
+# 			{input.mastersheetfile} \
+# 			{config[General][SampleFile]} \
+# 			{config[General][AnnotCol]} \
+# 			{config[IQTL][nchunk]}"
+
+
+# rule run_RASQUAL:
+# 	""" 
+# 	Runs RASQUAL for the loops and SNPs
+# 	"""
+# 	input:
+# 		WDIR + '/RASQUAL_INPUTS/Y.txt'
+# 	output:
+# 		WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Default/' + {chrom} + '/' + {chunkID} + '/complete_set_of_regions_first_interacting_bin.bed'	
+# 	params:
+# 		RASQUALExec=str(config['General']['RASQUALBaseDir']) + '/bin/rasqual', 
+# 		chrom = lambda wildcards: wildcards.chrom,
+# 		chunkID = lambda wildcards: LIS_CHUNKS[wildcards.chunkID]
+# 	shell:
+# 		"Rscript {SCRIPTDIR}/Code/RASQUAL/run_RASQUAL.R \
+# 			{params.chrom} \
+# 			{params.RASQUALExec} \
+# 			{config[General][SampleFile]} \
+# 			WDIR + '/RASQUAL_INPUTS' \
+# 			WDIR + '/RASQUAL_OUTPUTS' \
+# 			{config[General][GATKExec]} \
+# 			{config[General][Fasta]} \
+# 			{config[IQTL][GENOTYPEDIR]} + '/' + {params.chrom} + '/' + {params.chrom} + '_as_af_filtered.vcf.gz' \
+# 			{config[IQTL][GENOTYPEDIR]} + '/' + {params.chrom} + '/' + {params.chrom} + '_as_af_dat_filtered.vcf' \
+# 			{config[IQTL][window_size]} \
+# 			{config[HiChIP][binsize]} \
+# 			{params.chunkID} \
+# 			{WDIR} + '/HiChIP_Alignments_Subsample_CIS_Reads' \
+# 			{config[HiChIP][LowDistThr]}"
+
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

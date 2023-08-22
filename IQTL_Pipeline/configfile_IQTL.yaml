@@ -1,0 +1,98 @@
+#==================================== 
+## configuration file for IQTL analysis
+## used in the SnakeMake pipeline
+#==================================== 
+
+##=========
+## Global parameters
+##=========
+General:
+  
+  ## reference genome: 
+  ## available options: hg19, hg38, mm9, mm10, mm39
+  RefGenome: "hg19"
+
+  ## chrosome size file
+  ChrSize: "/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/chrsize/chrom_hg19.sizes"
+  
+  ## fasta file corresponding to the reference genome
+  Fasta: "/mnt/BioAdHoc/Groups/vd-vijay/Cristian/genomes/complete_genome/hg19_non_hap/hg19.fa"
+  
+  ## file containing the donor / sample wise metadata
+  SampleFile: "/mnt/bioadhoc-temp/Groups/vd-ay/sourya/Projects/2020_IQTL_HiChIP/GitHub_Code/IQTL_Pipeline/Data/Sample_DonorList_Annotated.txt"
+
+  ## columns in the sample file containing sample specific covariate information
+  ## like Sex, Race, Age, or any other metadata
+  ## these columns need to be provided as a comma or colon separated lists
+  AnnotCol: "3:4:5:6"
+  
+  ## Base output directory
+  ## all the IQTL related results would be stored under this folder
+  IQTLResDir: "/mnt/bioadhoc-temp/Groups/vd-ay/sourya/Projects/2020_IQTL_HiChIP/GitHub_Code/IQTL_Pipeline/Results"
+  
+  ## considering only autosomal chromosomes for processing HiChIP reads, interactions, SNPs etc.
+  AutosomalChr: 1
+  
+  ## Directory containing the source code of the package RASQUAL
+  RASQUALBaseDir: "/home/sourya/packages/RASQUAL/rasqual-master"
+  
+  ## GATK executable
+  GATKExec: "/home/sourya/packages/GATK/gatk-4.1.9.0/gatk"
+
+HiChIP:
+  
+  ## FitHiChIP executable
+  FitHiChIPExec: "/mnt/BioAdHoc/Groups/vd-vijay/sourya/Projects/2017_FitHiChIP/Code/FitHiChIP/FitHiChIP_HiCPro.sh"
+
+  ## peak file
+  PeakFile: "/mnt/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_IQTL_HiChIP/Data/ChIP_Seq_Peaks_ChromQTL/merge.macs2_peaks.narrowPeak"
+
+  ## base directory containing HiChIP data (fastq) files of all samples
+  ## individual samples are named by the sample ID (2nd column) of the "SampleFile"
+  ## one donor may be associated with multiple samples (multiple sequencing, different runs or libraries)
+  HiChIPDataDir: "/mnt/bioadhoc-temp/Groups/vd-ay/sourya/Projects/2020_IQTL_HiChIP/GitHub_Code/IQTL_Pipeline/Data/HiChIP"
+  
+  # ## base directory containing all the FitHiChIP loops for individual donors
+  # FitHiChIPBaseDir: "/path/to/FitHiChIP/Loops/"
+  
+  ## FitHiChIP output directory prefix
+  ## FitHiChIP loops and other results for individual samples would be stored in 
+  ## ${FitHiChIPBaseDir}/${Sample}/${FitHiChIPPrefix}
+  FitHiChIPPrefix: "FitHiChIP_Res5Kb_Dist10Kb3Mb"
+  
+  ## Resolution of FitHiChIP loops in bp - default 5000 means 5 Kb
+  binsize: 5000
+  
+  ## FitHiChIP lower distance threshold for contacts (in bp)
+  ## in IQTL project, we used 10 Kb
+  LowDistThr: 10000
+  
+  ## FitHiChIP upper distance threshold for contacts (in bp)
+  ## in IQTL project, we used 3 Mb
+  HighDistThr: 3000000
+  
+  ## Whether loose (P2P=0) or stringent (P2P=1) background specific FitHiChIP significant loops would be used for IQTL analysis.
+  ## in our results, we have employed P2P=0
+  P2P: 0
+  
+  ## FDR threshold employed for FitHiChIP loops
+  FDRThr: 0.01
+
+
+IQTL:
+  
+  ## Number of chunks per chromosome
+  ## used to derive IQTLs by chunks, to speed up the computation
+  ## better to keep this value as it is
+  nchunk: 15
+  
+  ## Window size used to perform RASQUAL IQTL mapping
+  ## SNPs within this window from a bin will be considered for RASQUAL analysis
+  ## in our implementation, we employed 5 Kb bin size, and SNPs within 5 Kb of a bin were considered for IQTL analysis
+  window_size: 5000
+
+  ## directory containing the genotype
+  ## temporary
+  ## later need to be automated
+  GENOTYPEDIR: "/mnt/BioAdHoc/Groups/vd-vijay/sourya/Projects/2020_IQTL_HiChIP/Results/PREPROCESSED_DATA/merged_ASReads_VCF_Donors_Runs_1_2_4/Reads_subsampled_CIS_10Kb3Mb/UseDuplReads"
+
