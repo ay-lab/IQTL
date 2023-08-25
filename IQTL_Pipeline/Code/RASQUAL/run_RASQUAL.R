@@ -84,12 +84,22 @@ ReEst_ASReads <- function(n.row, vcf.z.path, vcf.dat, start1.vcf, end1.vcf, star
     ##===============
     ## step 1: subset VCF by selecting SNPs within these regions
     ##===============
-    feat.vcf <- vcf.dat[which(((vcf.dat[, 2] >= start1.vcf) & (vcf.dat[, 2] <= end1.vcf)) | ((vcf.dat[, 2] >= start2.vcf) & (vcf.dat[, 2] <= end2.vcf))), ]
+    vcf.dat.sub <- vcf.dat[which(((vcf.dat[, 2] >= start1.vcf) & (vcf.dat[, 2] <= end1.vcf)) | ((vcf.dat[, 2] >= start2.vcf) & (vcf.dat[, 2] <= end2.vcf))), ]
+    cat(sprintf(" - nrow(vcf.dat.sub) : %s ", nrow(vcf.dat.sub)))
     ## if there is no SNP within the specified intervals, continue
-    if (nrow(feat.vcf) == 0) {
+    if (nrow(vcf.dat.sub) == 0) {
         return(0)
+    }    
+
+    ## extract only information for the current samples
+    feat.vcf <- vcf.dat.sub[, 1:9]
+    for (si in 1:length(sample.names)) {
+        colidx <- which(colnames(vcf.dat.sub) == sample.names[si])
+        cat(sprintf("\n si : %s sample.names[si] : %s colidx : %s ", si, sample.names[si], colidx))
+        cn <- colnames(feat.vcf)
+        feat.vcf <- cbind.data.frame(feat.vcf, vcf.dat.sub[, colidx])
+        colnames(feat.vcf) <- c(cn, sample.names[si])
     }
-    cat(sprintf(" - nrow(feat.vcf) : %s ", nrow(feat.vcf)))
 
     ##===============
     ## step 2: extract SNPs from VCF file, within this region
@@ -186,8 +196,13 @@ ReEst_ASReads <- function(n.row, vcf.z.path, vcf.dat, start1.vcf, end1.vcf, star
     }   # end donor loop - sequential processing
 
     ## dump the output SNPs with re-estimated allele specific reads
-    system(paste0("zcat ", curr_SNPset_file, ".gz | awk \'(substr($1,1,1)==\"#\")\' - > ", out_currregion_SNPfile))
-    write.table(feat.vcf, out_currregion_SNPfile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
+    
+    # system(paste0("zcat ", curr_SNPset_file, ".gz | awk \'(substr($1,1,1)==\"#\")\' - > ", out_currregion_SNPfile))
+    # write.table(feat.vcf, out_currregion_SNPfile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
+    
+    system(paste0("zcat ", curr_SNPset_file, ".gz | awk \'($1 ~ \"##\")\' - > ", out_currregion_SNPfile))
+    write.table(feat.vcf, out_currregion_SNPfile, row.names=F, col.names=T, sep="\t", quote=F, append=T)
+
     bgzip_compress_vcf(out_currregion_SNPfile)
 
     return(1)
@@ -208,18 +223,15 @@ out.path.Base <- as.character(args[5])
 GATKExec <- as.character(args[6])  # GATK executable
 RefGenomeFastaFile <- as.character(args[7])  # fasta file for the reference genome
 vcf.z.path <- as.character(args[8])
-vcf.path <- as.character(args[9])
-window.size <- as.numeric(args[10])
-binsize <- as.integer(args[11])
-chunkID <- as.integer(args[12])
-HiChIPAlignmentBaseDir <- as.character(args[13])  ## base directory containing merged HiChIP alignment
-MinLoopDist <- as.integer(args[14])
+window.size <- as.numeric(args[9])
+binsize <- as.integer(args[10])
+chunkID <- as.integer(args[11])
+HiChIPAlignmentBaseDir <- as.character(args[12])  ## base directory containing merged HiChIP alignment
+MinLoopDist <- as.integer(args[13])
 
 ## from the input donor wise list, 
-## first column denotes the sample ID
-## second column denotes the donor ID
-sample.id.col <- 1
-donor.id.col <- 2
+## first column contains sample ID / donor ID information
+donor.id.col <- 1
 
 # Minor allele Frequency used for Rasqual
 maf <- 0.05
@@ -252,7 +264,6 @@ cat("Rasqual executable:", rasqual.path, "\n")
 cat("GATK executable: ", GATKExec, "\n")
 cat("Donor list file:", DonorlistFile, "\n")
 cat("VCF gzipped path:", vcf.z.path, "\n")
-cat("VCF path:", vcf.path, "\n")
 cat("RASQUAL input file folder:", INPDIR, "\n")
 cat("Output path (default RASQUAL output) :", out.path.Default, "\n")
 cat("Output path (population specific RASQUAL output) :", out.path.Pop, "\n")
@@ -266,7 +277,8 @@ cat("RefGenomeFastaFile: ", RefGenomeFastaFile, "\n")
 cat("MinLoopDist: ", MinLoopDist, "\n")
 
 ## Reading data - vcf file (absolute)
-vcf.dat <- data.table::fread(vcf.path, header=TRUE)
+nline_to_skip <- as.integer(system(paste0("zcat ", vcf.z.path, " | awk \'{if ($1 ~ \"#CHR\") {print (NR-1)}}\' - "), intern = TRUE))
+vcf.dat <- data.table::fread(vcf.z.path, skip=nline_to_skip, header=T, sep="\t", stringsAsFactors=F, check.names=F)
 
 ## Reading data - count file (Y.txt)
 count.dat <- data.table::fread(y.norm.path)
@@ -276,7 +288,7 @@ chunkData <- data.table::fread(chunkfile, header=T)
 
 ## Reading data - list of samples
 DonorlistData <- data.table::fread(DonorlistFile)
-sample.align.dirlist <- as.character(DonorlistData[, sample.id.col])
+sample.align.dirlist <- as.character(DonorlistData[, donor.id.col])
 sample.names <- as.character(DonorlistData[, donor.id.col])
 sample.size <- length(sample.names)
 cat(sprintf("\n Sample names (donors) : %s ", paste(sample.names, collapse=" ")))
@@ -304,7 +316,7 @@ Write_Interacting_Intervals(count.dat, start_idx, end_idx, window.size, allinter
 for (si in 1:length(sample.names)) {
     cat(sprintf("\n ===>> creating bedtools reference for all regions - processing bam : %s ", sample.names[si]))
     ## Note: this bedtools operation requires read alignment file sorted by read name
-    inphichipalignfile <- paste0(HiChIPAlignmentBaseDir, '/', sample.align.dirlist[si], '/chrwise/merged_HiChIP_', currchr, '_cis_sorted_readname.bam')
+    inphichipalignfile <- paste0(HiChIPAlignmentBaseDir, '/', sample.align.dirlist[si], '/chrwise/merged_HiChIP_', currchr, '_subsampled_CIS_sorted_readname.bam')
     ## output alignment file
     subsethichipalignfile <- paste0(out.path.Default, 'out_', sample.names[si], '_reference_all_regions.bam')
     if (file.exists(subsethichipalignfile) == FALSE) {
