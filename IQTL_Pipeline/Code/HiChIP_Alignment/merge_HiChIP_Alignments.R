@@ -57,6 +57,7 @@ for (i in 1:length(samplelist)) {
 ## merge the alignments (only for the specified chromosome)
 system(paste(cmdstr))
 
+## samtools sort
 system(paste("samtools sort -o", sortalignfile, " -@ 8 ", outalignfile))
 system(paste("samtools index", sortalignfile))
 system(paste("rm", outalignfile))

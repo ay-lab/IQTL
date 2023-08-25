@@ -25,14 +25,15 @@ inpvalidpairfile <- paste0(IQTLResDir, '/HiChIP_CIS_Reads/', TargetDonor, '/Merg
 mergedalignfilename <- paste0(IQTLResDir, '/HiChIP_Complete_Alignments/', TargetDonor, '/chrwise/merged_HiChIP_', Targetchr, '_sorted.bam')
 SubsampleAlignDir <- paste0(IQTLResDir, '/HiChIP_Alignments_Subsample_CIS_Reads/', TargetDonor, '/chrwise')
 system(paste("mkdir -p", SubsampleAlignDir))
-subsamplealignfile <- paste0(SubsampleAlignDir, '/merged_HiChIP_', Targetchr, '_subsampled_CIS_sorted.bam')
+subsamplealignfile <- paste0(SubsampleAlignDir, '/merged_HiChIP_', Targetchr, '_subsampled_CIS_sorted_readname.bam')
 	
 ## first extract the read names from the HiChIP valid pairs file (subsampled)
 readnamefile <- paste0(SubsampleAlignDir, '/target_readnames_', Targetchr, '.txt')
-system(paste("zcat", inpvalidpairfile, "| awk \'{if ($2==\"", Targetchr, "\") {print $1}}' - >", readnamefile))	
+system(paste0("zcat ", inpvalidpairfile, " | awk -F\'\t\' \'{if ($2==\"", Targetchr, "\") {print $1}}\' - > ", readnamefile))	
 
 ## then extract these reads (corresponding to the read names) from the input alignment file
-system(paste("samtools view -h -N", readnamefile, mergedalignfilename, "| samtools sort -o", subsamplealignfile, "-@ 8 -"))	
+## sort the output bam file by read names
+system(paste0("samtools view -h -N ", readnamefile, " ", mergedalignfilename, " | samtools sort -n -o ", subsamplealignfile, " -@ 8 - "))	
 
 ## then index the bam file
 system(paste("samtools index", subsamplealignfile))	
