@@ -51,10 +51,7 @@ HiChIP:
   ## individual samples are named by the sample ID (2nd column) of the "SampleFile"
   ## one donor may be associated with multiple samples (multiple sequencing, different runs or libraries)
   HiChIPDataDir: "/mnt/bioadhoc-temp/Groups/vd-ay/sourya/Projects/2020_IQTL_HiChIP/GitHub_Code/IQTL_Pipeline/Data/HiChIP"
-  
-  # ## base directory containing all the FitHiChIP loops for individual donors
-  # FitHiChIPBaseDir: "/path/to/FitHiChIP/Loops/"
-  
+   
   ## FitHiChIP output directory prefix
   ## FitHiChIP loops and other results for individual samples would be stored in 
   ## ${FitHiChIPBaseDir}/${Sample}/${FitHiChIPPrefix}
