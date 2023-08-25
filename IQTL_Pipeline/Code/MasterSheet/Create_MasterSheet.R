@@ -14,6 +14,94 @@ library(dplyr)
 options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
+GetNumLines <- function(inpfile) {
+	nline <- as.integer(system(paste("cat", inpfile, "| wc -l"), intern = TRUE))
+	return(nline)
+}
+
+ExtractChrData <- function(InpFile, chrName, OutFile=NULL, header=TRUE, dist=c(-1,-1), mid=FALSE) {
+	if (is.null(OutFile)) {
+		OutFile <- paste0(dirname(InpFile), "/temp_Chr_data.bed")
+	}
+
+	# process the distance thresholds
+	# and insert in two variables
+	if ((dist[1] > 0) & (dist[2] > 0) & (dist[2] > dist[1])) {
+		distthrlow <- dist[1]
+		distthrhigh <- dist[2]		
+	} else {
+		distthrlow <- -1
+		distthrhigh <- -1
+	}
+
+	# condition based on using gzipped input file
+	# or plain text file
+
+	if (tools::file_ext(InpFile) == "gz") {
+		if (header == TRUE) {
+			if (mid == TRUE) {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("zcat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if (NR>1 && $1==\"", chrName, "\" && $3==\"", chrName, "\" && (abs($2-$4)>=dt) && (abs($2-$4)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("zcat ", InpFile, " | awk \' {if (NR>1 && $1==\"", chrName, "\" && $3==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			} else {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("zcat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if (NR>1 && $1==\"", chrName, "\" && $4==\"", chrName, "\" && (abs($2-$5)>=dt) && (abs($2-$5)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("zcat ", InpFile, " | awk \' {if (NR>1 && $1==\"", chrName, "\" && $4==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			}
+		} else {
+			if (mid == TRUE) {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("zcat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if ($1==\"", chrName, "\" && $3==\"", chrName, "\" && (abs($2-$4)>=dt) && (abs($2-$4)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("zcat ", InpFile, " | awk \' {if ($1==\"", chrName, "\" && $3==\"", chrName, "\") {print $0}}\' -  > ", OutFile))						
+				}
+			} else {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("zcat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if ($1==\"", chrName, "\" && $4==\"", chrName, "\" && (abs($2-$5)>=dt) && (abs($2-$5)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("zcat ", InpFile, " | awk \' {if ($1==\"", chrName, "\" && $4==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			}
+		}
+	} else {
+		if (header == TRUE) {
+			if (mid == TRUE) {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("cat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if (NR>1 && $1==\"", chrName, "\" && $3==\"", chrName, "\" && (abs($2-$4)>=dt) && (abs($2-$4)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("cat ", InpFile, " | awk \' {if (NR>1 && $1==\"", chrName, "\" && $3==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			} else {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("cat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if (NR>1 && $1==\"", chrName, "\" && $4==\"", chrName, "\" && (abs($2-$5)>=dt) && (abs($2-$5)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("cat ", InpFile, " | awk \' {if (NR>1 && $1==\"", chrName, "\" && $4==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			}
+		} else {
+			if (mid == TRUE) {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("cat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if ($1==\"", chrName, "\" && $3==\"", chrName, "\" && (abs($2-$4)>=dt) && (abs($2-$4)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("cat ", InpFile, " | awk \' {if ($1==\"", chrName, "\" && $3==\"", chrName, "\") {print $0}}\' -  > ", OutFile))						
+				}
+			} else {
+				if ((distthrlow > 0) & (distthrhigh > 0)) {
+					system(paste0("cat ", InpFile, " | awk -v dt=", distthrlow, " -v dth=", distthrhigh, " \' function abs(v) {return v < 0 ? -v : v} {if ($1==\"", chrName, "\" && $4==\"", chrName, "\" && (abs($2-$5)>=dt) && (abs($2-$5)<=dth)) {print $0}}\' -  > ", OutFile))
+				} else {
+					system(paste0("cat ", InpFile, " | awk \' {if ($1==\"", chrName, "\" && $4==\"", chrName, "\") {print $0}}\' -  > ", OutFile))
+				}
+			}
+		}
+	}
+
+}	# end function
+
+
 #====================================================
 option_list = list(
 	make_option(c("--P2P"), type="integer", action="store", default=0, help="FitHiChIP background model. 0: loose, 1: stringent."),
@@ -74,8 +162,8 @@ writeLines(outtext, con=fp_Param, sep="\n")
 close(fp_Param)
 
 # list of IQTL donors
-DonorListData <- read.table(DonorListFile, header=F, sep="\t", stringsAsFactors=F, check.names=F)
-Complete_DonorList <- as.vector(DonorListData[,1])
+DonorListData <- read.table(DonorListFile, header=T, sep="\t", stringsAsFactors=F, check.names=F)
+Complete_DonorList <- as.vector(unique(DonorListData[,1]))
 
 #================================
 # this function annotates individual loops in the merged union set of loops
@@ -101,8 +189,8 @@ FillFeatureValues <- function(UnionLoopFile, UnionLoopFeatureFile, P2ALoopFileLi
 		cat(sprintf("\n ===>>> Within function FillFeatureValues --- processing chromosome : %s ", chrName))
 
 		##=========== first extract the loops involving current chromosome		
-		UtilRPckg::ExtractChrData(UnionLoopFile, chrName, UnionLoopTempFile1, header=F)
-		nreadCurr <- UtilRPckg::GetNumLines(UnionLoopTempFile1)
+		ExtractChrData(UnionLoopFile, chrName, UnionLoopTempFile1, header=F)
+		nreadCurr <- GetNumLines(UnionLoopTempFile1)
 		if (nreadCurr == 0) {
 			next
 		}
@@ -125,7 +213,7 @@ FillFeatureValues <- function(UnionLoopFile, UnionLoopFeatureFile, P2ALoopFileLi
 			inpfile <- P2ALoopFileList[i]
 			##==== extract the interacting bins (fields 2 and 5), raw contact count (field 7)
 			system(paste0("awk -v b=", BinSize, " \'{if ((NR>1) && ($1==\"", chrName, "\")) {print ($2/b)\"\t\"($5/b)\"\t\"$7\"\t\"$(NF-4)\"\t\"$NF}}\' ", inpfile, " > ", InpTempFitHiChIPLoopFile))
-			nreadInp <- UtilRPckg::GetNumLines(InpTempFitHiChIPLoopFile)
+			nreadInp <- GetNumLines(InpTempFitHiChIPLoopFile)
 			
 			if (nreadInp > 0) {
 				InpTempData <- data.table::fread(InpTempFitHiChIPLoopFile, header=F)
@@ -276,5 +364,13 @@ if (file.exists(UnionLoopFeatureFile) == FALSE) {
 ##====== 2) SigLoopCnt: number of donors having this contact as a significant contact
 UnionLoopFeatureCntFile <- paste0(MasterSheetDir, '/MasterSheet_loops_with_Count.bed')
 system(paste0("awk \'{if (NR==1) {print $0\"\tLoopCnt\tSigLoopCnt\"} else {l=0;s=0;for (i=7;i<=NF;i=i+3) {if ($i>0) {l=l+1}; if (($i>0) && ($(i+2)< ", FDR_THR, ")) {s=s+1}}; print $0\"\t\"l\"\t\"s}}\' ", UnionLoopFeatureFile, " > ", UnionLoopFeatureCntFile))
+
+## remove temporary files
+if (file.exists(UnionLoopFile)) {
+	system(paste("rm", UnionLoopFile))
+}
+if (file.exists(UnionLoopTempFile)) {
+	system(paste("rm", UnionLoopTempFile))
+}
 
 
