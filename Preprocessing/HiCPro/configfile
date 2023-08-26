@@ -1,1 +1,111 @@
+# Please change the variable settings below if necessary
+
+#########################################################################
+## Paths and Settings
+#########################################################################
+
+# following four variables should not be edited
+TMP_DIR = tmp
+LOGS_DIR = logs
+BOWTIE2_OUTPUT_DIR = bowtie_results
+MAPC_OUTPUT = hic_results
+
+# directory containing the dataset
+# assuming the fastq files are placed within the "rawdata" folder.
+RAW_DIR = rawdata
+
+# system configuration - edit if you have different cluster settings
+N_CPU = 8
+
+# logfile of the results - do not need to edit
+LOGFILE = hicpro.log
+
+#########################################################################
+## Data
+#########################################################################
+
+# extension of the input data
+# edit if you have different file name
+# _1 means that name of the read 1 data file is *_1.fastq.gz
+# _R1 means that name of the read 1 data file is *_R1.fastq.gz
+PAIR1_EXT = _R1
+# _2 means that name of the read 1 data file is *_2.fastq.gz
+# _R2 means that name of the read 1 data file is *_R2.fastq.gz
+PAIR2_EXT = _R2
+
+#######################################################################
+## Alignment options
+#######################################################################
+FORMAT = phred33
+
+# this is the mapq threshold - edit if you employ different mapq threshold 
+MIN_MAPQ = 0
+
+# path of the index file of bowtie2
+# this should be edited according to the reference genome employed
+# also, during HiCPro installation, make sure you've installed Bowtie2 and added its path in the configuration file of HiCPro
+BOWTIE2_IDX_PATH = /home/sourya/bowtie2_indexes/hg19/
+
+# options of bowtie2 alignment
+# we recommend users to not edit these settings
+BOWTIE2_GLOBAL_OPTIONS = --very-sensitive -L 30 --score-min L,-0.6,-0.2 --end-to-end --reorder
+BOWTIE2_LOCAL_OPTIONS =  --very-sensitive -L 20 --score-min L,-0.6,-0.2 --end-to-end --reorder
+
+#######################################################################
+## Annotation files
+#######################################################################
+
+# these values need to be edited according to the input data and the reference genome employed
+REFERENCE_GENOME = hg19
+GENOME_SIZE = chrom_hg19.sizes 
+
+#######################################################################
+## Allele specific
+#######################################################################
+
+ALLELE_SPECIFIC_SNP = 
+
+#######################################################################
+## Digestion Hi-C
+#######################################################################
+
+# restriction file needs to be checked for different reference genomes and different restriction sites
+# we have used hg19 reference genome and MboI RE sites
+GENOME_FRAGMENT = /home/sourya/HiCPro/annotation/MboI_hg19_RE_Fragments.bed
+
+# the ligation site, according to the RE employed, also needs to be edited accordingly
+LIGATION_SITE = GATCGATC
+
+## so far, we have used default fragment size and insert size parameters - kept these entries blank
+MIN_FRAG_SIZE = 
+MAX_FRAG_SIZE = 
+MIN_INSERT_SIZE = 
+MAX_INSERT_SIZE = 
+
+#######################################################################
+## Hi-C processing
+#######################################################################
+
+MIN_CIS_DIST =
+GET_ALL_INTERACTION_CLASSES = 1
+GET_PROCESS_SAM = 1
+RM_SINGLETON = 1
+RM_MULTI = 1
+RM_DUP = 1
+
+#######################################################################
+## Contact Maps and the specific resolutions (in bp)
+#######################################################################
+
+BIN_SIZE = 5000 10000 20000 40000 100000 500000 1000000
+MATRIX_FORMAT = upper
+
+#######################################################################
+## ICE Normalization - better to keep these parameters as it is
+#######################################################################
+MAX_ITER = 100
+FILTER_LOW_COUNT_PERC = 0.02
+FILTER_HIGH_COUNT_PERC = 0
+EPS = 0.1
+
 
