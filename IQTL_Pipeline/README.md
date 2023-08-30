@@ -8,110 +8,110 @@
 ## Prior Requirements
 ## ********
 
-Please check the README of the primary repository link, and install the required packages / libraries.
+1. Please check the README of the primary repository link, and install the required packages / libraries.
+
+2. Assuming that user has already executed HiC-pro on individual samples, and also organized the output HiCPro directories for individual samples under a common base directory (for details, users can check the primary README and the README associated with the section *Preprocessing/HiCPro*).
 
 
 ## ********
-## Step-by-step execution
+## IQTL pipeline
 ## ********
 
-## ===========
-## A. Preprocessing
-## ===========
+We have provided a snakemake pipeline, for automated execution of the IQTLs using the input chromatin loops and SNP information.
 
 
-## A.0. Creating the sample list and the metadata for HiChIP datasets
+## Step 1:
 
-Check the file *Data/DonorList_Annotated.txt* provided along with this repository. 
+Check the file *slurm_submit.sh* (according to the SLURM-based job submission parameters) and edit the corresponding options, if required. 
 
-	- Column 1: Donor ID
-	- Column 2: Sample ID. Can be kept same as the donor ID, or user can insert sample specific information. For example, if a donor has multiple HiChIP samples (different sequencing runs) then those individual run information (and corresponding sample ID) can be put here.
-	- Column 3: SeqDepth: Sequencing depth of the HiChIP datasets. Initially kept blank. Once HiC-pro is executed, user can fill up this column (see details below).
-	- Columns 4 to 7: Sample specific metadata or annotation information, as available for the input set of cohorts. There is no fixed format or header for these fields, can be omitted or inserted as required, depending on the input datasets.
+User can edit this file for other job submission environments like *qsub* as well.
 
 
-## A.1. Align and pre-process HiChIP datasets using HiC-Pro
+## Step 2:
 
-Check the folder *Preprocessing/HiCPro* and associated README for details on how to run HiC-pro for one HiChIP sample.
+*Snakefile* contains the snakemake pipeline in details.
 
-	** Note: We recommend organizing fastq files for individual samples under a common folder (*COMMONDIR*). 
+Individual rules / steps of this pipeline are:
 
-		- For example, the fastq files for a given sample (suppose its name is *sample1*) would be located in the folder *COMMONDIR/sample1/data/rawdata/*.fastq.gz*. 
-		- The sample names *sample1* should follow the 2nd column of the sample metadata file *Data/DonorList_Annotated.txt*.
+	1. *merge_HiChIP_ValidPairs*: Merge HiChIP valid pairs (CIS) for all samples of a donor. The output is one valid pairs file for a given donor.
 
-	** Follow the configuration file of HiCPro to run the package. 
+	2. *calc_seq_depth*: Calculates sequencing depth for individual donors, as the number of CIS valid pairs. Also creates one updated sample file containing the sequencing depth information, which are used later to compute sequencing-depth normalized contact counts.
 
-	** The output directories for individual samples containing HiCPro output would be *COMMONDIR/sample1/HiCPro/*, *COMMONDIR/sample2/HiCPro/*, where the sample names are *sample1*, *sample2*, etc.
+	3. *merge_HiChIP_Alignments*: Merge HiC-pro alignments (bowtie2 generated .bam files) for individual donors and their constituent samples.
 
+	4. *subsample_HiChIP*: Subsample the above merged alignment (.bam) files by keeping only those reads which are included in the CIS merged valid pairs file. 
 
-## A.2. Fill the sequencing depth in the sample information metadata file
+		The alignments are also divided by chromosome, sorted, and indexed. 
 
-	** Once HiC-pro is executed for all the samples, we need to compute the sequencing depth for individual samples. In the current study, we only considered CIS valid pairs within the distance range 10 Kb - 3 Mb for calling signfificant loops using FitHiChIP.
+		Such distribution helps to quickly compute the allele-specific reads during IQTL derivation.
 
-	** In view of this, for each sample, we run the following command on the HiC-pro generated valid pairs file to obtain the sequencing depth:
+	5. *Call_FitHiChIP*: Call FitHiChIP loops using the merged CIS valid pairs file for individual donors.
 
-		awk -F'[\t]' -v l="$lowdist" -v h="$highdist" '(($2==$5) && ($2 ~ /^chr([1-9]|2[0-2]|1[0-9])$/ ) && (($6-$3)>=l) && (($6-$3)<=h))' $inpfile
+	6. *MasterSheet*: Generate union of signfificant FitHiChIP loops for all the donors.
 
-		- where, 
-			lowdist = lower distance threshold = 10000 (10 Kb)
-			highdist = lower distance threshold = 3000000 (3 Mb)
-			We considered the autosomal chromosomes (and corresponding valid pairs) in the current study.
-		
-	** These sequencing depth values for individual samples need to be put into the sample metadata file *Data/DonorList_Annotated.txt*.
+	7. *RASQUAL_Covariate*: Compute covariates compatible with RASQUAL from the generated master sheet of loops.
 
+	8. *run_RASQUAL*: Running RASQUAL for loops from individual chromosomes and chunks (by default, loops from individual chromosomes are distributed in 15 chunks).
 
-## A.3. Merge ChIP-seq from individual donors and call peaks using MACS2 
+	9. *summarize_RASQUAL*: Once RASQUAL is run for all the donors, this step summarizes and identifies the significant SNP-loop pairs using the outputs from various models of RASQUAL and also using the paired t-test analysis from the allele-specific reads.
 
-Check the file *Preprocessing/ChIP_Peaks/Merge_ChIP_Samples_Infer_Peaks.sh* 
-
-	** Note: this file is a a template script to merge the ChIP-seq alignment (.bam) files from the input donors and call peaks using MACS2. 
-
-	** Although the script shows calling peaks using various p-value or q-value thresholds, our FitHiChIP loop calls and IQTL pipeline (described below) employs peaks with q-value < 0.01 (the file *merged_donors.macs2_peaks.narrowPeak_Q0.01filt*).
-
-	** Note: In our IQTL pipeline, we have reported results (SNPs and loops) from the autosomal chromosomes. If users want to also report the results for autosomal chromosomes only, they can check this generated peak file and discard any entry for the non-autosomal chromosomes.
+	10. *FinalList*: This rule produces the final list of IQTLs, namely the file *Final_IQTLs/Complete_IQTL.txt* within the specified output folder.
 
 
+*Note:* User does not need to change this file.
 
-## A.4. FitHiChIP loops
 
-Check *Preprocessing/FitHiChIP* for details on how to run FitHiChIP for one HiChIP sample.
+## Step 3:
 
-	** Note: We recommend organizing FitHiChIP loop output directories (named by specific samples / donors) under a base directory *FitHiChIPDir*. This base directory would be useful for the subsequent steps.
+The file *cluster.json* contains the resource allocation (memory, cores, and time) for individual steps. User can look into these steps and modify the resource allotted.
 
-		- For example, if the sample names are *sample1*, *sample2*, etc.. then the output directory structure would be *FitHiChIPDir/Sample1*, *FitHiChIPDir/Sample2*, ... where *FitHiChIPDir* is the base directory name.
-		
-		- The sample names *Sample1*, *Sample2* follow the 2nd column of the sample metadata file *Data/DonorList_Annotated.txt*.
 
-		- The output directory for individual samples can be set in the respective configuration files. We recommend using the following directory for a sample: *FitHiChIPDir/Sample2/FitHiChIPPrefix* where, *FitHiChIPPrefix* is a specific string which should be identical across all the samples.
+## Step 4 (Important) - edit the configuration parameters
 
-			- This *FitHiChIPPrefix* value should be provided as an input to the IQTL configuration file (check the IQTL pipeline and the associated configuration file, specifically the parameter *FitHiChIPPrefix*)
+The file *configfile_IQTL.yaml* contains the configuration parameters. 
 
-	** Check the configuration file and FitHiChIP sample script in the folder *Preprocessing/FitHiChIP* to run FitHiChIP for individual samples. 
+The entries are provided as *Key:Value* pairs. Check the corresponding entries and description, and edit accordingly.
 
-		- For details of FitHiChIP, please check its documentation https://github.com/ay-lab/FitHiChIP
+*Note:* Missing / incorrect entries in the configuration file will result in errorneous results.
 
-	** Note: Check the ChIP-seq peak file used as the input of FitHiChIP. It should be identical across all the input samples. 
 
-		- We used the ChIP-seq peaks derived from the step A.2, specifically peaks with q-value < 0.01 (the file *merged_donors.macs2_peaks.narrowPeak_Q0.01filt*).
+## Step 5
 
-	
-## A.5. PCA on FitHiChIP loops and for the specific samples
+Once the configiration file is edited, run the snakemake pipeline using the command *sbatch slurm_submit.sh*.
 
-	** Check the folder *Preprocessing/PCA* and the underlying README for details on how to run PCA on the derived FitHiChIP loops, to assess any donor specific variation, or to determine any outlier donors. 
-
-		- In our data, we ran PCA but did not find any specific outliers. 
-
-		- If users find any such outliers, they can remove the corresponding sample, and update the sample metadata file *Data/DonorList_Annotated.txt* as well. 
+If everything goes well, the final set of IQTLs would be listed in the file *Final_IQTLs/Complete_IQTL.txt* within the specified output folder.
 
 
 
+## ********
+## A note regarding the data
+## ********
+
+Due to the constraint of sharing the loops and genotype information, we could not provide a sample data. We'll share them as soon as possible. 
 
 
 
+## ********
+## License
+## ********
+
+MIT license.
 
 
+## ********
+## Reference / Citation
+## ********
+
+To be provided.
 
 
+## ********
+## Support / Queries
+## ********
 
+For any queries, please e-mail: 
 
+Sourya Bhattacharyya <sourya@lji.org>
+
+Ferhat Ay <ferhatay@lji.org>
 

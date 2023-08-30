@@ -35,12 +35,12 @@ if RefGenome == "hg19" or RefGenome == "hg38":
 	if AutoChr == 1:
 		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 23)))
 	else:
-		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 23))) + list('chrX') + list('chrY')
+		LIS_CHROM = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
 elif RefGenome == "mm9" or RefGenome == "mm10" or RefGenome == "mm39":
 	if AutoChr == 1:
 		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 20)))
 	else:
-		LIS_CHROM = list("chr" + str(s) for s in list( range( 1, 20))) + list('chrX') + list('chrY')
+		LIS_CHROM = [f'chr{i}' for i in range(1, 20)] + ['chrX', 'chrY']
 
 ## number of chunks
 LIS_CHUNKS = list( range(1, int(config['IQTL']['nchunk']) +1) )
@@ -58,12 +58,13 @@ rule all:
 	input:
 		# WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz'
 		# WDIR + '/Sample.txt',
-		expand(WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted_readname.bam', donor=LIS_DONORS, chrom=LIS_CHROM),
-		expand(WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '_WashU.bed.gz', donor=LIS_DONORS)
-		
+		# expand(WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted_readname.bam', donor=LIS_DONORS, chrom=LIS_CHROM),		
+		# expand(WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '_WashU.bed.gz', donor=LIS_DONORS)		
 		# WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'
 		# WDIR + '/RASQUAL_INPUTS/Y.txt'		
 		# expand(WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Default/{chrom}/{chunkID}/complete_set_of_regions_first_interacting_bin.bed', chrom=list("chr" + str(s) for s in list( range( 1, 2))), chunkID=list(range(1,2)))
+		# expand(WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Combined/{chrom}/{chunkID}/RASQUAL_out.txt', chrom=list("chr" + str(s) for s in list( range( 1, 2))), chunkID=LIS_CHUNKS)
+		WDIR + '/Final_IQTLs/Complete_IQTL.txt'
 
 
 rule merge_HiChIP_ValidPairs:
@@ -147,7 +148,7 @@ rule Call_FitHiChIP:
 	input:
 		expand(WDIR + '/HiChIP_CIS_Reads/{donor}/Merged_CIS_Validpairs.txt.gz', donor=LIS_DONORS)
 	output:
-		WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '_WashU.bed.gz'
+		WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '.bed'
 	shell:
 		## create FitHiChIP configuration file, and execute FitHiChIP
 		"Rscript {SCRIPTDIR}/Code/FitHiChIP/Run_FitHiChIP.R \
@@ -165,108 +166,114 @@ rule Call_FitHiChIP:
 			{config[HiChIP][FitHiChIPExec]}"
 
 
-# rule MasterSheet:
-# 	""" 
-# 	Creates mastersheet of FitHiChIP loops for all IQTL donors	
-# 	"""
-# 	input:
-# 		expand(WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '_WashU.bed.gz', donor=LIS_DONORS),
-# 		SampleFile = WDIR + '/Sample.txt'
-# 	output:
-# 		WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'
-# 	shell:				
-# 		"Rscript {SCRIPTDIR}/Code/MasterSheet/Create_MasterSheet.R \
-# 			--P2P {config[HiChIP][P2P]} \
-# 			--FitHiChIPBaseDir {WDIR}/FitHiCHIP_Loops \
-# 			--MasterSheetDir {config[General][IQTLResDir]}/MasterSheet_Loops \
-# 			--DonorFile {input.SampleFile} \
-# 			--BinSize {config[HiChIP][binsize]} \
-# 			--FitHiChIPDirPrefix {config[HiChIP][FitHiChIPPrefix]} \
-# 			--DistLow {config[HiChIP][LowDistThr]} \
-# 			--DistHigh {config[HiChIP][HighDistThr]} \
-# 			--Auto {config[General][AutosomalChr]} \
-# 			--RefGenome {config[General][RefGenome]} \
-# 			--FDRThr {config[HiChIP][FDRThr]}"
+rule MasterSheet:
+	""" 
+	Creates mastersheet of FitHiChIP loops for all IQTL donors	
+	"""
+	input:
+		expand(WDIR + '/FitHiCHIP_Loops/{donor}/' + config['HiChIP']['FitHiChIPPrefix'] + '/FitHiChIP_Peak2ALL_b' + str(config['HiChIP']['binsize']) + '_L' + str(config['HiChIP']['LowDistThr']) + '_U' + str(config['HiChIP']['HighDistThr']) + '/P2PBckgr_' + str(config['HiChIP']['P2P']) + '/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC_Q' + str(config['HiChIP']['FDRThr']) + '.bed', donor=LIS_DONORS),
+		SampleFile = WDIR + '/Sample.txt'
+	output:
+		WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'
+	shell:				
+		"Rscript {SCRIPTDIR}/Code/MasterSheet/Create_MasterSheet.R \
+			--P2P {config[HiChIP][P2P]} \
+			--FitHiChIPBaseDir {WDIR}/FitHiCHIP_Loops \
+			--MasterSheetDir {config[General][IQTLResDir]}/MasterSheet_Loops \
+			--DonorFile {input.SampleFile} \
+			--BinSize {config[HiChIP][binsize]} \
+			--FitHiChIPDirPrefix {config[HiChIP][FitHiChIPPrefix]} \
+			--DistLow {config[HiChIP][LowDistThr]} \
+			--DistHigh {config[HiChIP][HighDistThr]} \
+			--Auto {config[General][AutosomalChr]} \
+			--RefGenome {config[General][RefGenome]} \
+			--FDRThr {config[HiChIP][FDRThr]}"
 
 
 
 
-# ##==============
-# ## insert a segment regarding the genotype estimation
-# ##==============
+##==============
+## insert a segment regarding the genotype estimation
+##==============
 
-# rule RASQUAL_Covariate:
-# 	""" 
-# 	Creates RASQUAL compatible input files and covariates
-# 	"""
-# 	input:
-# 		mastersheetfile = WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed',
-# 		SampleFile = WDIR + '/Sample.txt'
-# 	output:
-# 		WDIR + '/RASQUAL_INPUTS/Y.txt'
-# 	shell:				
-# 		"Rscript {SCRIPTDIR}/Code/RASQUAL/calc_offset_covariates.R \
-# 			{config[General][IQTLResDir]} \
-# 			{config[General][RASQUALBaseDir]} \
-# 			{input.mastersheetfile} \
-# 			{input.SampleFile} \
-# 			{config[General][AnnotCol]} \
-# 			{config[IQTL][nchunk]}"
-
-
-# rule run_RASQUAL:
-# 	""" 
-# 	Runs RASQUAL for the loops and SNPs
-# 	"""
-# 	input:
-# 		expand(WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted_readname.bam', donor=LIS_DONORS, chrom=LIS_CHROM),
-# 		WDIR + '/RASQUAL_INPUTS/Y.txt',
-# 		SampleFile = WDIR + '/Sample.txt'
-# 	output:
-# 		WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Default/{chrom}/{chunkID}/complete_set_of_regions_first_interacting_bin.bed'	
-# 	params:
-# 		RASQUALExec=str(config['General']['RASQUALBaseDir']) + '/bin/rasqual', 
-# 	shell:
-# 		"Rscript {SCRIPTDIR}/Code/RASQUAL/run_RASQUAL.R \
-# 			{wildcards.chrom} \
-# 			{params.RASQUALExec} \
-# 			{input.SampleFile} \
-# 			{WDIR}/RASQUAL_INPUTS \
-# 			{WDIR}/RASQUAL_OUTPUTS \
-# 			{config[General][GATKExec]} \
-# 			{config[General][Fasta]} \
-# 			{config[IQTL][GENOTYPEDIR]}/{wildcards.chrom}/{wildcards.chrom}_as_af_filtered.vcf.gz \
-# 			{config[IQTL][window_size]} \
-# 			{config[HiChIP][binsize]} \
-# 			{wildcards.chunkID} \
-# 			{WDIR}/HiChIP_Alignments_Subsample_CIS_Reads \
-# 			{config[HiChIP][LowDistThr]}"
+rule RASQUAL_Covariate:
+	""" 
+	Creates RASQUAL compatible input files and covariates
+	"""
+	input:
+		mastersheetfile = WDIR + '/MasterSheet_Loops/MasterSheet_loops_with_Count.bed'		
+	output:
+		WDIR + '/RASQUAL_INPUTS/Y.txt'
+	shell:				
+		"Rscript {SCRIPTDIR}/Code/RASQUAL/calc_offset_covariates.R \
+			{config[General][IQTLResDir]} \
+			{config[General][RASQUALBaseDir]} \
+			{input.mastersheetfile} \
+			{WDIR}/Sample.txt \
+			{config[General][AnnotCol]} \
+			{config[IQTL][nchunk]}"
 
 
-		
+rule run_RASQUAL:
+	""" 
+	Runs RASQUAL for the loops and SNPs
+	"""
+	input:
+		expand(WDIR + '/HiChIP_Alignments_Subsample_CIS_Reads/{donor}/chrwise/merged_HiChIP_{chrom}_subsampled_CIS_sorted_readname.bam', donor=LIS_DONORS, chrom=LIS_CHROM),
+		WDIR + '/RASQUAL_INPUTS/Y.txt'
+	output:
+		WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Default/{chrom}/{chunkID}/complete_set_of_regions_first_interacting_bin.bed'	
+	params:
+		RASQUALExec=str(config['General']['RASQUALBaseDir']) + '/bin/rasqual'
+	shell:
+		"Rscript {SCRIPTDIR}/Code/RASQUAL/run_RASQUAL.R \
+			{wildcards.chrom} \
+			{params.RASQUALExec} \
+			{WDIR}/Sample.txt \
+			{WDIR}/RASQUAL_INPUTS \
+			{WDIR}/RASQUAL_OUTPUTS \
+			{config[General][GATKExec]} \
+			{config[General][Fasta]} \
+			{config[IQTL][GENOTYPEDIR]}/{wildcards.chrom}/{wildcards.chrom}_as_af_filtered.vcf.gz \
+			{config[IQTL][window_size]} \
+			{config[HiChIP][binsize]} \
+			{wildcards.chunkID} \
+			{WDIR}/HiChIP_Alignments_Subsample_CIS_Reads \
+			{config[HiChIP][LowDistThr]}"
 
 
+rule summarize_RASQUAL:
+	"""
+	Summarizes RASQUAL outputs for individual chromosomes and chunks
+	By combining the default, genotype-dependent, and allele-specific models
+	"""
+	input:
+		expand(WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Default/{chrom}/{chunkID}/complete_set_of_regions_first_interacting_bin.bed', chrom=LIS_CHROM, chunkID=LIS_CHUNKS)		
+	output:
+		WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Combined/{chrom}/{chunkID}/out.log'
+	shell:
+		"Rscript {SCRIPTDIR}/Code/RASQUAL/summarize_RASQUAL.R \
+			{wildcards.chrom} \
+			{WDIR}/RASQUAL_OUTPUTS \
+			{WDIR}/MasterSheet_Loops/MasterSheet_loops_with_Count.bed \
+			{WDIR}/Sample.txt \
+			{config[HiChIP][FDRThr]} \
+			{config[IQTL][FDRThr_IQTL]} \
+			{wildcards.chunkID}"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rule FinalList:
+	"""
+	Create the final list of IQTLs
+	By taking a union of the previous results from all chromosomes
+	"""
+	input:
+		expand(WDIR + '/RASQUAL_OUTPUTS/RASQUAL_Combined/{chrom}/{chunkID}/out.log', chrom=LIS_CHROM, chunkID=LIS_CHUNKS)
+	output:
+		WDIR + '/Final_IQTLs/Complete_IQTL.txt'
+	shell:		
+		"""
+		Combine all the RASQUAL significant outputs
+		"""
+		"cat {WDIR}/RASQUAL_OUTPUTS/RASQUAL_Combined/chr*/*/FILTERED/out_rawCC.txt | awk '!((NR>1) && ($1=="BinID"))' - > {output}"
 

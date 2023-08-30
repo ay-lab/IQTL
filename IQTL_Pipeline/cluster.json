@@ -64,6 +64,19 @@
         "nodes" : "1",
         "memory" : "80G"
     },
-
+    "summarize_RASQUAL" :
+    {
+        "walltime" : "10:00:00",
+        "cores" : "1",
+        "nodes" : "1",
+        "memory" : "20G"
+    },
+    "FinalList" :
+    {
+        "walltime" : "10:00:00",
+        "cores" : "1",
+        "nodes" : "1",
+        "memory" : "4G"
+    },
 
 }
