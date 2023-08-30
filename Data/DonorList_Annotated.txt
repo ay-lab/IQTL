@@ -1,1 +1,7 @@
-c
+DonorID	SampleID	Gender	Ethnicity	Race	Age.group
+D1	D1_Run1	F	Not Hispanic or Latino	More Than One Race	18-27
+D1	D1_Run2	F	Not Hispanic or Latino	More Than One Race	18-27
+D2	D2_Run1	M	Not Hispanic or Latino	White	28-37
+D3	D3_Run1	M	Not Hispanic or Latino	White	28-37
+D4	D4_Run1	M	Not Hispanic or Latino	White	18-27
+D5	D5_Run1	F	Hispanic or Latino	More Than One Race	18-27
