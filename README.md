@@ -5,9 +5,9 @@ QTLs (SNPs) or quantitative trait loci associated with chromatin interactions.
 
 *Note*: 
 
-	1. Current workflow derives QTLs associated with HiChIP chromatin interactions (details below)
+1. Current workflow derives QTLs associated with HiChIP chromatin interactions (details below)
 
-	2. The workflow can be adapted to process other types of chromatin interaction data, such as Hi-C, PCHi-C, Micro-C, ChIA-PET, etc.
+2. The workflow can be adapted to process other types of chromatin interaction data, such as Hi-C, PCHi-C, Micro-C, ChIA-PET, etc.
 
 
 ## Developed by 
@@ -29,11 +29,11 @@ The trend of gene expression for different groups of samples according to their 
 
 Below are some of the reference studies in eQTL (and corresponding eQTL databases) that users can look into before diving into the concept of chromatin interaction and IQTLs.
 
-	1. GTEx consortium, Science 2020 [Link](https://pubmed.ncbi.nlm.nih.gov/32913098/)
+1. GTEx consortium, Science 2020 [Link](https://pubmed.ncbi.nlm.nih.gov/32913098/)
 
-	2. DICE eQTL study, Schmiedel et al. Cell 2018 [Link](https://pubmed.ncbi.nlm.nih.gov/30449622/)
+2. DICE eQTL study, Schmiedel et al. Cell 2018 [Link](https://pubmed.ncbi.nlm.nih.gov/30449622/)
 
-	3. matrixQTL, a method to derive the significant SNPs associated with genotype-dependent change of gene expression [Link](https://pubmed.ncbi.nlm.nih.gov/22492648/)
+3. matrixQTL, a method to derive the significant SNPs associated with genotype-dependent change of gene expression [Link](https://pubmed.ncbi.nlm.nih.gov/22492648/)
 
 
 ## Background on chromatin interactions
@@ -42,21 +42,21 @@ Chromatin conformation capture (3C) techniques capture the regulatory interactio
 
 Two 3C protocols are widely applied in the reference studies: 
 	
-	1. Hi-C capturing genome-wide all-to-all interactions between every possible fragments. Requires very high sequencing depth. 
+1. Hi-C capturing genome-wide all-to-all interactions between every possible fragments. Requires very high sequencing depth. 
 
-	2. HiChIP: capturing genome-wide regulatory interactions subject to a particular protein or histone modifications of interest. Requires much lower sequencing depth and has better precision in capturing regularory interactome.
+2. HiChIP: capturing genome-wide regulatory interactions subject to a particular protein or histone modifications of interest. Requires much lower sequencing depth and has better precision in capturing regularory interactome.
 
 Below are some of the reference studies in chromatin interactions that user can refer for understanding the basics on biological protocols and computational approaches to decode the E-P interactions.
 
-	1. *in-situ* HiC protocol: Rao et al. Cell 2014 [Link](https://pubmed.ncbi.nlm.nih.gov/25497547/)
+1. *in-situ* HiC protocol: Rao et al. Cell 2014 [Link](https://pubmed.ncbi.nlm.nih.gov/25497547/)
 
-	2. HiChIP Protocol: Mumbach et al. Nature Methods 2016 [Link](https://pubmed.ncbi.nlm.nih.gov/27643841/)
+2. HiChIP Protocol: Mumbach et al. Nature Methods 2016 [Link](https://pubmed.ncbi.nlm.nih.gov/27643841/)
 
-	3. HiChIP Protocol applied on various immune cells and integrating with GWAS: Mumbach et al. Nature Genetics 2017  [Link](https://pubmed.ncbi.nlm.nih.gov/28945252/)
+3. HiChIP Protocol applied on various immune cells and integrating with GWAS: Mumbach et al. Nature Genetics 2017  [Link](https://pubmed.ncbi.nlm.nih.gov/28945252/)
 
-	4. FitHiC - method to identify statistically significant Hi-C interactions [Genome Research, 2014](https://pubmed.ncbi.nlm.nih.gov/24501021/) [Nature Protocols, 2020](https://pubmed.ncbi.nlm.nih.gov/31980751/)
+4. FitHiC - method to identify statistically significant Hi-C interactions [Genome Research, 2014](https://pubmed.ncbi.nlm.nih.gov/24501021/) [Nature Protocols, 2020](https://pubmed.ncbi.nlm.nih.gov/31980751/)
 
-	5. FitHiChIP - method to identify statistically significant HiChIP interactions [Nature Communications, 2019](https://pubmed.ncbi.nlm.nih.gov/31530818/)
+5. FitHiChIP - method to identify statistically significant HiChIP interactions [Nature Communications, 2019](https://pubmed.ncbi.nlm.nih.gov/31530818/)
 
 
 ## Concept of interaction QTL (IQTL)
@@ -70,15 +70,19 @@ For example, Fig. 1 shows a SNP rs2305479 as the IQTL for the 40 Kb chromatin lo
 We employed Naive CD4 H3K27ac HiChIP data of 30 donors (Fig. 3) to derive the IQTLs. To define the IQTLs, we employed RASQUAL using both genotype-dependent variation of chromatin contacts and the allele-specific variation of HiChIP reads (Fig. 4). The outputs of RASQUAL and a separate paired-end t-test of allele-specific reads are combined and filtered to produce the final set of significant SNPs and associated HiChIP loops.
 
 ![Figure 1](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture3.png)
+
 *Figure 1: Example IQTL rs2305479 associated with a 40 Kb HiChIP loop between the genes IKZF3 and GSDMB. The color scale indicates the mean normalized contact counts for different genotypes.*
 
 ![Figure 2](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture4.png)
+
 *Figure 2: Trend of genotype dependent HiChIP contact counts for rs2305479 and for the 40 Kb HiChIP loop between the genes IKZF3 and GSDMB*
 
 ![Figure 3](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture1.png)
+
 *Figure 3: Using Naive CD4 H3K27ac HiChIP data of 30 donors for IQTL derivation*
 
 ![Figure 4](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture2.png)
+
 *Figure 4: Schematic of IQTL derivation using genotype-dependent and allele-specific statistics*
 
 
