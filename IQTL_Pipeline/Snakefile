@@ -234,7 +234,7 @@ rule run_RASQUAL:
 			{WDIR}/RASQUAL_OUTPUTS \
 			{config[General][GATKExec]} \
 			{config[General][Fasta]} \
-			{config[IQTL][GENOTYPEDIR]}/{wildcards.chrom}/{wildcards.chrom}_as_af_filtered.vcf.gz \
+			{config[IQTL][GENOTYPEDIR]}/{wildcards.chrom}.vcf.gz \
 			{config[IQTL][window_size]} \
 			{config[HiChIP][binsize]} \
 			{wildcards.chunkID} \
