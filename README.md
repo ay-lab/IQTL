@@ -1,10 +1,13 @@
-# IQTL (Interaction QTL)
+IQTL (Interaction QTL)
+==========================
 
-## Description
+QTLs (SNPs) or quantitative trait loci associated with chromatin interactions.
 
-Quantitative trait loci (QTL) associated with chromatin interaction data.
+*Note*: 
 
-*Note*: Although the current workflow is based on HiChIP data, in practice, the workflow can be adapted to process other types of chromatin interaction data, such as HiC, PCHi-C, Micro-C, ChIA-PET, etc.
+	1. Current workflow derives QTLs associated with HiChIP chromatin interactions (details below)
+
+	2. The workflow can be adapted to process other types of chromatin interaction data, such as Hi-C, PCHi-C, Micro-C, ChIA-PET, etc.
 
 
 ## Developed by 
@@ -16,18 +19,74 @@ Instructor, Center of Autoimmunity and Inflammation
 La Jolla Institute for Immunology, La Jolla, CA 92037, USA
 
 
-## ********
-## Roadmap
-## ********
+## Background on eQTL
 
-August 24, 2023 - First release.
+Conventional eQTL (expression quantitative trait loci) studies derive the SNPs associated with the genotype-dependent change of gene expression for a given set of samples, with respect to a specific tissue or cell type.
+
+The bi-allelic SNPs (suppose for a given SNP, we denote its alleles as *X* and *x* where *X* is the reference allele and *x* is the alternate allele) are only considered for eQTL (or any QTL analysis). Samples are grouped according to their genotype: reference homozygous (*X|X*), heterozygous (*X|x*) and alternate homozygous (*x|x*).
+
+The trend of gene expression for different groups of samples according to their genotypes are then assessed for statistical significance, and the significant SNPs are reported as eQTLs. By default, SNPs within 1 Mb from a given gene (TSS or transcription start site) are only assessed for significance.
+
+Below are some of the reference studies in eQTL (and corresponding eQTL databases) that users can look into before diving into the concept of chromatin interaction and IQTLs.
+
+	1. GTEx consortium, Science 2020 [Link](https://pubmed.ncbi.nlm.nih.gov/32913098/)
+
+	2. DICE eQTL study, Schmiedel et al. Cell 2018 [Link](https://pubmed.ncbi.nlm.nih.gov/30449622/)
+
+	3. matrixQTL, a method to derive the significant SNPs associated with genotype-dependent change of gene expression [Link](https://pubmed.ncbi.nlm.nih.gov/22492648/)
 
 
-## ********
+## Background on chromatin interactions
+
+Chromatin conformation capture (3C) techniques capture the regulatory interactions between promoters and regulatory elements (like enhancers) which can often be spatially distal (even having more than 1 Mb distance) but comes as 3D-proximal to the promoters due to the loop extrusion principle. Using genome-wide 3C protocols and computational methods, we can decipher the statistically significant regulatory interactions and corresponding interacting Enhancer-Promoter pairs.
+
+Two 3C protocols are widely applied in the reference studies: 
+	
+	1. Hi-C capturing genome-wide all-to-all interactions between every possible fragments. Requires very high sequencing depth. 
+
+	2. HiChIP: capturing genome-wide regulatory interactions subject to a particular protein or histone modifications of interest. Requires much lower sequencing depth and has better precision in capturing regularory interactome.
+
+Below are some of the reference studies in chromatin interactions that user can refer for understanding the basics on biological protocols and computational approaches to decode the E-P interactions.
+
+	1. *in-situ* HiC protocol: Rao et al. Cell 2014 [Link](https://pubmed.ncbi.nlm.nih.gov/25497547/)
+
+	2. HiChIP Protocol: Mumbach et al. Nature Methods 2016 [Link](https://pubmed.ncbi.nlm.nih.gov/27643841/)
+
+	3. HiChIP Protocol applied on various immune cells and integrating with GWAS: Mumbach et al. Nature Genetics 2017  [Link](https://pubmed.ncbi.nlm.nih.gov/28945252/)
+
+	4. FitHiC - method to identify statistically significant Hi-C interactions [Genome Research, 2014](https://pubmed.ncbi.nlm.nih.gov/24501021/) [Nature Protocols, 2020](https://pubmed.ncbi.nlm.nih.gov/31980751/)
+
+	5. FitHiChIP - method to identify statistically significant HiChIP interactions [Nature Communications, 2019](https://pubmed.ncbi.nlm.nih.gov/31530818/)
+
+
+## Concept of interaction QTL (IQTL)
+
+Interaction QTLs (IQTLs) refer to the SNPs (QTLs) associated with chromatin interaction strength. Both genotype-depedent changes of chromatin contact counts and allele-speific variation of chromatin contacts are taken into account in order to define the interaction QTLs.
+
+In the current study, QTLs associated with HiChIP chromatin interactions are derived. However, the workflow can be adapted to process other types of chromatin interaction data, such as Hi-C, PCHi-C, Micro-C, ChIA-PET, etc.
+
+For example, Fig. 1 shows a SNP rs2305479 as the IQTL for the 40 Kb chromatin loop between the genes *IKZF3* and *GSDMB*. The variation of mean normalized HiChIP contact counts according to different genotypes are indicated by the color scale. Fig. 2 shows the trend of genotype dependent HiChIP contact counts for this SNP and loop.
+
+We employed Naive CD4 H3K27ac HiChIP data of 30 donors (Fig. 3) to derive the IQTLs. To define the IQTLs, we employed RASQUAL using both genotype-dependent variation of chromatin contacts and the allele-specific variation of HiChIP reads (Fig. 4). The outputs of RASQUAL and a separate paired-end t-test of allele-specific reads are combined and filtered to produce the final set of significant SNPs and associated HiChIP loops.
+
+![Figure 1](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture3.png)
+*Figure 1: Example IQTL rs2305479 associated with a 40 Kb HiChIP loop between the genes IKZF3 and GSDMB. The color scale indicates the mean normalized contact counts for different genotypes.*
+
+![Figure 2](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture4.png)
+*Figure 2: Trend of genotype dependent HiChIP contact counts for rs2305479 and for the 40 Kb HiChIP loop between the genes IKZF3 and GSDMB*
+
+![Figure 3](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture1.png)
+*Figure 3: Using Naive CD4 H3K27ac HiChIP data of 30 donors for IQTL derivation*
+
+![Figure 4](https://github.com/ay-lab/IQTL/blob/main/images/IQTL_Picture2.png)
+*Figure 4: Schematic of IQTL derivation using genotype-dependent and allele-specific statistics*
+
+
 ## Installation
-## ********
 
 Following packages (and associated libraries) need to be installed to run IQTL pipeline and other processing scripts:
+
+*Note:* Installation of all these packages should take a maximum of 2 hours.
 
 1. R (version 3.6.1 or higher - we used R 4.1.0). 
 
@@ -39,90 +98,97 @@ Following packages (and associated libraries) need to be installed to run IQTL p
 
 		BiocManager::install("edgeR")		
 
-2. HiC-pro (https://github.com/nservant/HiC-Pro). A package to align the HiChIP datasets with respect to the reference genome. We recommend installing the latest version.
+2. HiC-pro (https://github.com/nservant/HiC-Pro). A package to align the HiChIP datasets with respect to the reference genome. We recommend installing the latest version. Check its associated README to install the package.
 
 3. FitHiChIP (https://github.com/ay-lab/FitHiChIP) and its associated dependencies, to call significant HiChIP loops. Check its documentation for the detailed installation (https://ay-lab.github.io/FitHiChIP/html/usage/installation.html). The significant HiChIP loops will be used as an input to the IQTL derivation pipeline.
 
-4. RASQUAL (https://github.com/natsuhiko/rasqual). Download the source code and install. The directory containing the downloaded package will be used as an input of the IQTL pipeline.
+4. RASQUAL (https://github.com/natsuhiko/rasqual). Download the source code and install according to the README. The directory containing the downloaded package will be used as an input of the IQTL pipeline.
 
-5. GATK (https://gatk.broadinstitute.org/hc/en-us). Download and install. The path of the GATK executable needs to be provided as a configuration parameter.
+5. GATK (https://gatk.broadinstitute.org/hc/en-us). Download and install from the mentioned link. The path of the GATK executable needs to be provided as a configuration parameter.
 
-6. bedtools (https://bedtools.readthedocs.io/en/latest/)
+6. bedtools (https://bedtools.readthedocs.io/en/latest/) download and install from the mentioned link.
 
 7. samtools (http://www.htslib.org/) pefereably the latest version (at least >= 1.10). 
 
-	** Once samtools is installed, run the command "samtools view" in the terminal. If you do not see (-N) option (indicates that a file with the mentioned read names can be provided), you need to upgrade the samtools version.
+	*Note:* Once samtools is installed, run the command "samtools view" in the terminal. If you do not see (-N) option (indicates that a file with the mentioned read names can be provided), you need to upgrade the samtools version.
 
 
-## ********
 ## Step-by-step execution
-## ********
 
-
-## ===========
-## A. Creating the sample list and the metadata
-## ===========
+### Step A: Creating the sample list and the metadata
 
 Check the file *Data/DonorList_Annotated.txt* provided along with this repository. 
 
-The first column is the donor ID, second column is the sample ID, and the subsequent columns are metadata for individual donors and samples.
+	- Column 1: donor ID
 
-*Note*: There is a difference between donor ID (1st column) and the sample ID (2nd column). One donor may be associated with multiple samples, like sequences in different runs, resulting HiC / HiChIP files for different runs.
+	- Column 2: sample ID
 
-*Note*: For example, given a donor D, there can be multiple samples D_Run1, D_Run2 corresponding to two sequencing runs / batches Run1 and Run2, each generating different HiChIP datasets.
+	- Subsequent columns are metadata for individual donors and samples.
 
-*Note*: User should maintain the above mentioned meta data format of this file, specifically the first two columns. Subsequent columns (and corresponding header information) can be updated / edited / added according to the metadata of the target samples.
+*Note*: 
 
+	- There is a difference between donor ID (1st column) and the sample ID (2nd column). 
 
-## ===========
-## B. Preprocessing HIChIP samples and filtering HiChIP datasets and donors (if required)
-## ===========
+	- One donor may be associated with multiple samples, like sequences in different runs, resulting Hi-C / HiChIP files for different runs.
 
-## Running HiC-Pro
+	- For example, given a donor ID *D*, there can be multiple samples *D_Run1*, *D_Run2* corresponding to different sequencing runs / batches *Run1* and *Run2*, each corresponding to different HiChIP data.
 
-Check the section *Preprocessing/HiCPro* and the associated README for details on how to run HiC-pro on individual HIChIP data.
+*Note*: 
 
-*Note*: Once HiC-pro is run for all the samples, user should create a base directory and provide all the HiC-pro output folders (or their links) for all the samples within the base directory. 
+	- User should maintain the first 2 columns and enter corresponding information. Duplicate entries are allowed if one donor corresponds to one unique sample.
 
-*Note*: This base directory will be provided as an input to the IQTL pipeline.
-
-## Running PCA
-
-If user has any doubt regarding the batch effects of HiC / HiChIP data for individual samples, he/she can first run FitHiChIP (https://github.com/ay-lab/FitHiChIP) or FitHiC2 (https://github.com/ay-lab/FitHiC) on the given HiChIP or HiC datasets for all the samples, to identify the significant loops. 
-
-Once these loops are identified for all the samples, user can check the README of the section *Preprocessing/PCA* to perform principal component analysis on the input samples, using the union (or top-K loops) of significant loops for individual samples, to identify any outlier samples.
-
-*Note*: If there is any outlier sample found after PCA, user should edit the sample file (*Data/DonorList_Annotated.txt*) or create a separate copy, excluding the outlier samples.
-
-*Note*: The modified sample file (after excluding the outlier samples) needs to be provided as an input to the IQTL pipeline.
+	- From the column 3, user can put custom columns (and field names) according to input data.
 
 
-## ===========
-## C. IQTL pipeline
-## ===========
+### Step B. Preprocessing HIChIP samples - Running HiC-Pro
 
-Check the section *IQTL_derive* for a step-by-step description on how to use the donor / sample specific chromatin interactions and the SNP information to derive the IQTLs.
+Check the section *Preprocessing/HiCPro* and the associated README for details on how to run HiC-pro (to align HiChIP fastq files with respect to the reference genome) on individual HIChIP data.
 
-*Note*: Due to the constraints of data sharing, we currently could not share the HiChIP loops and also the genotype information. We are currently providing snapshots / examples of data. Once we upload our datasets to suitable repositories, we will share the corresponding links here.
+*Note*: 
+
+	- Once HiC-pro is run for all the samples, user should create a base directory and provide all the HiC-pro output folders (or their links) for all the samples within the base directory. 
+
+	- This base directory will be provided as an input to the IQTL pipeline.
 
 
-## ********
+### Step C. Filtering HiChIP datasets (by PCA) (Optional)
+
+If user has any doubt regarding the sample qualities of Hi-C / HiChIP data, or the batch effects, he/she can first run FitHiChIP (https://github.com/ay-lab/FitHiChIP) or FitHiC2 (https://github.com/ay-lab/FitHiC) on the given HiChIP or Hi-C datasets, to identify the significant loops for individual samples. 
+
+User then can check the README of the section *Preprocessing/PCA* to perform principal component analysis (PCA) on the input samples, using the union of (or top-K) significant loops for individual samples, to identify any outliers.
+
+*Note*: 
+
+	- If there is any outlier sample found after PCA, user should manually edit the sample file (*Data/DonorList_Annotated.txt*) or create a separate copy, excluding the outlier samples, and provide it as an input to IQTL pipeline.
+
+
+### Step D. IQTL pipeline
+
+Check the section *IQTL_Pipeline* for a step-by-step description on how to use the donor / sample specific chromatin interactions and the SNP information to derive the IQTLs.
+
+*Note*: 
+
+	- Due to the constraints of data sharing, we currently could provide a dummy sample of genotype data and corresponding donor information.
+
+	- Once we upload our datasets to suitable repositories, we will share the corresponding links here.
+
+
 ## License
-## ********
 
 MIT license.
 
 
-## ********
 ## Reference / Citation
-## ********
 
 To be provided.
 
 
-## ********
+## Release Notes
+
+1. August 24, 2023 - First release, with IQTL pipeline and step-by-step detailed documentation.
+
+
 ## Support / Queries
-## ********
 
 For any queries, please e-mail: 
 
