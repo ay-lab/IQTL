@@ -1,37 +1,47 @@
-# IQTL (Interaction QTL)
+IQTL (Interaction QTL) pipeline
+=====================================
 
-# Detailed pipeline 
-# Quantitative trait loci (QTL) associated with chromatin interaction data.
+# Prior Requirements
 
+	1. Please check the README of the primary repository link, and install the required packages / libraries.
 
-## ********
-## Prior Requirements
-## ********
-
-1. Please check the README of the primary repository link, and install the required packages / libraries.
-
-2. Assuming that user has already executed HiC-pro on individual samples, and also organized the output HiCPro directories for individual samples under a common base directory (for details, users can check the primary README and the README associated with the section *Preprocessing/HiCPro*).
+	2. Execute HiC-pro on individual samples (fastq files), and also organized the output HiCPro directories for individual samples under a common base directory (for details, please check the README associated with the section *Preprocessing/HiCPro*).
 
 
-## ********
-## IQTL pipeline
-## ********
+# IQTL pipeline
 
-We have provided a snakemake pipeline, for automated execution of the IQTLs using the input chromatin loops and SNP information.
+Here we provide a snakemake pipeline, for automated execution of the IQTLs using the input chromatin loops and SNP information.
 
 
-## Step 1:
+## Step 1 (Important) - edit the configuration parameters
 
-Check the file *slurm_submit.sh* (according to the SLURM-based job submission parameters) and edit the corresponding options, if required. 
+The file *configfile_IQTL.yaml* contains the configuration parameters. 
 
-User can edit this file for other job submission environments like *qsub* as well.
+The entries are provided as *Key:Value* pairs. Check the corresponding entries and description, and edit accordingly.
+
+*Note:* Missing / incorrect entries in the configuration file will result in errorneous results.
 
 
 ## Step 2:
 
+Edit the file *slurm_submit.sh* (according to the SLURM-based job submission parameters) and edit the corresponding options, if required. 
+
+	- Specifically, edit the *code_path* parameter with the directory containing the source code.
+
+	- User can edit this file to make it compatible for other job submission environments like *qsub* as well.
+
+
+## Step 3:
+
 *Snakefile* contains the snakemake pipeline in details.
 
-Individual rules / steps of this pipeline are:
+*Note:* 
+
+	- The parameter *configfile* contains the name of the configuration file *configfile_IQTL.yaml* (as provided along with this repository). For any other configiration file, user needs to edit this parameter.
+
+	- No other parameters need to be edited.
+
+*Note:* Individual rules / steps of this pipeline are described below for reference:
 
 	1. *merge_HiChIP_ValidPairs*: Merge HiChIP valid pairs (CIS) for all samples of a donor. The output is one valid pairs file for a given donor.
 
@@ -58,56 +68,43 @@ Individual rules / steps of this pipeline are:
 	10. *FinalList*: This rule produces the final list of IQTLs, namely the file *Final_IQTLs/Complete_IQTL.txt* within the specified output folder.
 
 
-*Note:* User does not need to change this file.
+## Step 4:
 
-
-## Step 3:
-
-The file *cluster.json* contains the resource allocation (memory, cores, and time) for individual steps. User can look into these steps and modify the resource allotted.
-
-
-## Step 4 (Important) - edit the configuration parameters
-
-The file *configfile_IQTL.yaml* contains the configuration parameters. 
-
-The entries are provided as *Key:Value* pairs. Check the corresponding entries and description, and edit accordingly.
-
-*Note:* Missing / incorrect entries in the configuration file will result in errorneous results.
-
+The file *cluster.json* contains the resource allocation (memory, cores, and time) for individual steps. User can look into these rules and modify the resource allotted.
 
 ## Step 5
 
-Once the configiration file is edited, run the snakemake pipeline using the command *sbatch slurm_submit.sh*.
+Once the configiration file is edited, run the snakemake pipeline using the command *sbatch slurm_submit.sh* (assuming SLURM job submission).
 
 If everything goes well, the final set of IQTLs would be listed in the file *Final_IQTLs/Complete_IQTL.txt* within the specified output folder.
 
 
+# Creating genptype file
 
-## ********
-## A note regarding the data
-## ********
+Due to the constraint of sharing donor-wise genotype information, we cannot share the complete genotype information. 
 
-Due to the constraint of sharing the loops and genotype information, we could not provide a sample data. We'll share them as soon as possible. 
+	- So, we provide a sample genotype file in the folder *Data* corresponding to the set of donors *D1* to *D5*, as mentioned in the file *DonorList_Annotated.txt*.
+
+	- For each chromosome, we need separate VCF files storing the genotype information. The genotype files should be named as *chr1.vcf.gz* *chr2.vcf.gz* etc. 
+
+	- These VCF files should be compressed using bgzip and tabix indexed (using the command *tabix -p vcf chr1.vcf.gz*) as well.
+
+	- The format of these VCF files need to be maintained.
+
+*Note:* In future, we'll share the complete chromosome-wise genotype information and VCF files.
 
 
-
-## ********
 ## License
-## ********
 
 MIT license.
 
 
-## ********
 ## Reference / Citation
-## ********
 
 To be provided.
 
 
-## ********
 ## Support / Queries
-## ********
 
 For any queries, please e-mail: 
 
