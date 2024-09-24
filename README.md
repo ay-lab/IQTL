@@ -184,7 +184,9 @@ MIT license.
 
 ## Reference / Citation
 
-To be provided.
+iQTL manuscript is now online at Nature Communications.
+
+Bhattacharyya, Sourya & Ay, Ferhat. Identifying genetic variants associated with chromatin looping and genome function. Nat Commun 15, 8174 (2024). https://doi.org/10.1038/s41467-024-52296-4
 
 
 ## Release Notes
